@@ -12,9 +12,12 @@ My analysis will begin by first identifying factors that are significantly usefu
 ## Value
 With this analysis of identifying factors that contribute or predict voluntary employee turnover, DDSAnalytics should be able to develop processes and techniques that could help with employee retention. Our hope is that they will be able to leverage data science for other talent management solutions.
 
-##Links
-Zoom Video Link: https://smu-2u-com.zoom.us/rec/share/dpve2-1opTDltCRzCuSBVFKw3fdoAiJRsINh7-t2622J7glIGfme-vPM0uYIwp1L.usOPzurlmkL1kzp_?startTime=1692197835000
+## Links
+### Zoom Video 
+Link: https://smu-2u-com.zoom.us/rec/share/dpve2-1opTDltCRzCuSBVFKw3fdoAiJRsINh7-t2622J7glIGfme-vPM0uYIwp1L.usOPzurlmkL1kzp_?startTime=1692197835000
+### RShiny 
 RShiny App: 
+### GitHub Page
 GitHub Pages: 
 
 
