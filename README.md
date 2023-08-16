@@ -17,6 +17,7 @@ With this analysis of identifying factors that contribute or predict voluntary e
 Link: https://smu-2u-com.zoom.us/rec/share/dpve2-1opTDltCRzCuSBVFKw3fdoAiJRsINh7-t2622J7glIGfme-vPM0uYIwp1L.usOPzurlmkL1kzp_?startTime=1692197835000
 ### RShiny 
 RShiny App: 
+Link: https://erica-brooks.shinyapps.io/Case-Study-2-Shiny/
 ### GitHub Page
 GitHub Pages: 
 
