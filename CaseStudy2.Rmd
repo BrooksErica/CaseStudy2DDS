@@ -1,0 +1,303 @@
+---
+title: "CaseStudy-2"
+author: "Erica Brooks"
+date: "2023-08-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Libraries
+```{r}
+library(tidyverse)
+library(class)
+library(caret)
+library(e1071)
+library(tm)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(corrplot)
+library(naniar)
+library(GGally)
+```
+
+## Load CaseStudy2 data
+```{r}
+attrition = read.csv(file.choose(), header = TRUE, stringsAsFactors = TRUE)
+head(attrition)
+str(attrition)
+```
+
+
+# EDA 
+```{r}
+attrition$Attr <- as.numeric(attrition$Attrition) - 1 #adding dummy values(0,1) for Attrition
+str(attrition)
+
+#Address missing values in the data set (if any). Count missing values in each column
+s=sapply(attrition, function(x) sum(is.na(x))) 
+s
+#graphical view of missing values
+gg_miss_var(attrition)
+
+#Initial LRM to identify features that contribute to turnover.
+for (feature in names(attrition)) {
+  model <- lm(Attr == 1 ~ get(feature), data = attrition)
+  lm_summary <- summary(model)
+  print(paste("Linear Regression for", feature))
+  print(lm_summary)
+}
+
+#Select only the numeric variables in the data set
+attrition_num <- attrition %>% select_if(is.numeric)
+head(attrition_num)
+
+# Calculate the Pearson correlation coefficient 
+correlation <- cor(attrition_num, attrition$Attr, method = "pearson")
+print(correlation)
+
+#Plot numeric variables
+for (feature in names(attrition_num)) {
+  ggplot(attrition_num, aes_string(x = feature, y = attrition$Attr, color = feature)) +
+    geom_point() +
+    geom_jitter() +
+    labs(title = paste("Scatter Plot of", feature, "vs. Attrition")) +
+    ylab("Attrition")+
+    theme(axis.text.x=element_text(angle=90,margin = margin(.5), vjust = 1),legend.position = "none")
+  print(last_plot())
+}
+
+#Select only the categorical variables in the data set 
+attrition_fact <- attrition %>% select_if(is.factor)
+head(attrition_fact)
+
+for (feature in names(attrition_fact)) {
+  model2 <- aov(Attrition == "Yes" ~ get(feature), data = attrition_fact)
+  anova_summary <- summary(model2)
+  print(paste("ANOVA for", feature))
+  print(anova_summary)
+}
+
+#Plot Categorical variables
+for (feature in names(attrition_fact)) {
+  ggplot(attrition_fact, aes_string(x = feature, y = attrition$Attrition == "Yes", color = feature)) +
+    geom_point() +
+    geom_jitter() +
+    labs(title = paste("Scatter Plot of", feature, "vs. Attrition")) +
+    ylab("Attrition")+
+    theme(axis.text.x=element_text(angle=90,margin = margin(.5), vjust = 1),legend.position = "none")
+  print(last_plot())
+}
+
+#Looking at OverTime feature 
+overtime <- aov(Attrition == "Yes" ~ OverTime, data = attrition_fact)
+summary(overtime)
+
+```
+
+## Modeling
+
+### KNN Modeling - Predicting Attrition
+```{r}
+#Select features for modeling 
+attrition2 <- attrition %>% select(Attrition, JobInvolvement, JobLevel, MaritalStatus, TotalWorkingYears, MonthlyIncome, )
+head(attrition2)
+dim(attrition2)
+
+#Load CaseStudy2-No-Attrition data.csv
+No_Attrition_Comp = read.csv(file.choose(), header = TRUE, stringsAsFactors = TRUE)
+head(No_Attrition_Comp)
+
+attritionComp <- No_Attrition_Comp %>% select(ID, JobInvolvement, JobLevel, MaritalStatus, TotalWorkingYears, MonthlyIncome)
+head(attritionComp)
+dim(attritionComp)
+
+#Plot
+attrition2 %>% ggplot(aes(x = JobInvolvement, y = TotalWorkingYears, col = Attrition)) + geom_point() + ggtitle("Attrition v. Job Involvement and Total Working Years") + xlab("Job Involvement")  + 
+  geom_jitter()
+
+#Plot2
+attrition2 %>% ggplot(aes(x = JobLevel, y = MonthlyIncome, col = Attrition)) + geom_point() + ggtitle("Attrition v. Job Level and Monthly Income") + xlab("Job Level")  + 
+  geom_jitter()
+
+#Make the data reproducible. Get the same random data.
+set.seed(6)
+
+#Partition the 870 Observations into a smaller training set and testing set
+splitPerc = .75
+trainInd = sample(1:dim(attrition2)[1], round(splitPerc * dim(attrition2)[1]))
+trainAttr = attrition2[trainInd, ]
+dim(trainAttr)
+testAttr = attrition2[-trainInd, ]
+dim(testAttr)
+
+#KNN Classification with a k = 5 on training data and test data (JobInvolvement vs TotalWorkingYears) 
+classifications = knn(trainAttr[,c(2,5)],testAttr[,c(2,5)],trainAttr$Attrition, prob = TRUE, k = 5)
+table(testAttr$Attrition,classifications)
+cmAtt = confusionMatrix(table(testAttr$Attrition,classifications))
+cmAtt
+
+#KNN Classification with a k = 5 on training data and test data (Job Level vs Monthly Income) 
+classifications2 = knn(trainAttr[,c(3,6)],testAttr[,c(3,6)],trainAttr$Attrition, prob = TRUE, k = 5)
+table(testAttr$Attrition,classifications2)
+cmAtt2 = confusionMatrix(table(testAttr$Attrition,classifications2))
+cmAtt2
+
+#Model Tuning
+knnModel <- train(
+  Attrition ~ ., 
+  data = trainAttr, 
+  method = "knn", 
+  trControl = trainControl(method = "cv"), 
+  tuneGrid = data.frame(k = c(3,5,7))
+)
+
+#View statistics
+knnModel
+
+best_model<- knn3(
+  Attrition ~ .,
+  data = trainAttr,
+  k = knnModel$bestTune$k
+)
+
+#KNN Predication 
+attrition_Pred <- predict(best_model, newdata = attritionComp, type = "class")
+
+attritionKNN <- data.frame('ID' = attritionComp$ID, 'Attrition' = attrition_Pred)
+head(attritionKNN)
+
+# Calculate confusion matrix
+cmPred <- confusionMatrix(table(attrition_Pred, attritionKNN$Attrition))
+cmPred
+
+```
+
+### Naive Bayes Modeling - Predicting Attrition
+```{r}
+attritionComp2 <- No_Attrition_Comp %>% select(ID, JobInvolvement, JobSatisfaction, MaritalStatus, OverTime)
+head(attritionComp2)
+dim(attritionComp2)
+
+set.seed(4)
+
+model <- naiveBayes(trainAttr[,c(2:5)], trainAttr$Attrition, Labels = c("No", "Yes"))
+attrition_Pred2 <- predict(model, newdata = attritionComp2)
+
+attritionNB <- data.frame('ID' = attritionComp2$ID, 'Attrition' = attrition_Pred2)
+head(attritionNB)
+
+CM = confusionMatrix(table(attrition_Pred2, attritionNB$Attrition))
+CM
+
+```
+
+## Explore Relationships in Data
+
+### Graphical view at some of the relationships
+```{r}
+#Job Level and Monthly Income
+attrition %>% ggplot(aes(x = JobLevel, y = MonthlyIncome, color = JobLevel))+
+  geom_point() +
+  xlab("Job Level")+
+  ylab("Monthly Income")+
+  ggtitle("Relationship between Job Level and Monthly Income")+
+  geom_smooth(method = "lm")
+
+attrition %>% ggplot(aes(x=JobLevel))+
+  geom_bar(aes(y=MonthlyIncome), fill="pink", stat="identity")+
+  xlab("Job Level")+
+  ylab("Monthly Income")+
+  ggtitle("Job Level by Monthly Income")
+
+#Age and Attrition
+attrition %>% ggplot(aes(x = Age, y = Attrition, color = Age))+
+  geom_point() +
+  geom_jitter() +
+  xlab("Age")+
+  ylab("Attrition")+
+  ggtitle("Relationship between Attrition and Age")
+
+#Overtime and Attrition
+attrition %>% ggplot(aes(x = OverTime, y = Attrition, color = OverTime))+
+  geom_point() +
+  geom_jitter() +
+  xlab("OverTime")+
+  ylab("Attrition")+
+  ggtitle("Relationship between Attrition and OverTime")
+
+#Job Role and Job Satisfaction
+attrition %>% ggplot(aes(x = JobSatisfaction))+
+  geom_bar(aes(y=JobRole), fill="pink", stat="identity")+
+  xlab("Job Satisfaction")+
+  ylab("Job Role")+
+  ggtitle("Relationship between Job Role and Job Satisfaction")+
+  xlim(0, 4)
+ 
+#Pie Chart of the Job Role
+pie <- ggplot(attrition, aes(x = "", fill = factor(JobRole))) + 
+  geom_bar(width = 1) +
+  theme(axis.line = element_blank(), 
+        plot.title = element_text(hjust=0.5)) + 
+  labs(fill="Job Role", 
+       x=NULL, 
+       y=NULL, 
+       title="Pie Chart of Job Role", 
+       caption="Source: Attrition")
+
+pie + coord_polar(theta = "y", start=0)
+
+``` 
+
+
+##Modeling
+
+### Linear Regression Modeling - Predicting Salary
+```{r}
+#Load CaseStudy2-No-Salary data.csv
+No_Salary_Comp = read.csv(file.choose(), header = TRUE, stringsAsFactors = TRUE)
+head(No_Salary_Comp)
+
+salaryComp <- No_Salary_Comp %>% select(ID, JobLevel, JobRole, TotalWorkingYears)
+head(salaryComp)
+
+salary <- attrition %>% select(MonthlyIncome, JobLevel, JobRole, TotalWorkingYears)
+
+#Plot to the relationship between job level, job role, monthlu income
+salary %>% ggplot(aes(x = JobLevel, y = MonthlyIncome, color = JobRole))+
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(vars(JobRole))
+
+#LRM with the features that have great significance to Attrition
+fit = lm(MonthlyIncome ~ JobLevel + JobRole + TotalWorkingYears, data=salary)
+summary(fit)
+
+Pred <- predict(fit, salary)
+
+#Calculate RMSE
+rmse <- sqrt(mean((salary$MonthlyIncome - Pred)^2))
+print(rmse)
+
+  salaryPred <- predict(fit, newdata = salaryComp)
+
+salaryLM <- data.frame('ID' = salaryComp$ID, 'MonthlyIncome' = salaryPred)
+head(salaryLM)
+
+```
+
+### Writing predictions to .csv files
+```{r}
+#save KNN Predictions
+write.csv(attritionKNN, 'Case2PredictionsKNNClassifyBrooks-Attrition.csv')
+
+#save NB Predictions
+write.csv(attritionNB, 'Case2PredictionsNBClassifyBrooks-Attrition.csv')
+
+#save Linear Regression Predictions
+write.csv(salaryLM, 'Case2PredictionsBrooks-Salary.csv')
+```
