@@ -19,6 +19,7 @@ Link: https://smu-2u-com.zoom.us/rec/share/dpve2-1opTDltCRzCuSBVFKw3fdoAiJRsINh7
 RShiny App: 
 Link: https://erica-brooks.shinyapps.io/Case-Study-2-Shiny/
 ### GitHub Page
-GitHub Pages: 
+GitHub Pages: https://brookserica.github.io/
+
 
 
