@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Load Libraries
-```{r}
+```{r include = FALSE}
 library(tidyverse)
 library(class)
 library(caret)
@@ -23,10 +23,11 @@ library(knitr)
 library(corrplot)
 library(naniar)
 library(GGally)
+library(fastDummies)
 ```
 
 ## Load CaseStudy2 data
-```{r}
+```{r echo=FALSE}
 attrition = read.csv(file.choose(), header = TRUE, stringsAsFactors = TRUE)
 head(attrition)
 str(attrition)
@@ -35,18 +36,19 @@ str(attrition)
 
 # EDA 
 ```{r}
-attrition$Attr <- as.numeric(attrition$Attrition) - 1 #adding dummy values(0,1) for Attrition
-str(attrition)
+
+attrition$Attr <- as.numeric(attrition$Attrition) -1 #adding dummy values(0,1) for Attrition
 
 #Address missing values in the data set (if any). Count missing values in each column
 s=sapply(attrition, function(x) sum(is.na(x))) 
 s
+
 #graphical view of missing values
 gg_miss_var(attrition)
 
 #Initial LRM to identify features that contribute to turnover.
 for (feature in names(attrition)) {
-  model <- lm(Attr == 1 ~ get(feature), data = attrition)
+  model <- lm(Attrition ~ get(feature), data = attrition)
   lm_summary <- summary(model)
   print(paste("Linear Regression for", feature))
   print(lm_summary)
@@ -56,7 +58,7 @@ for (feature in names(attrition)) {
 attrition_num <- attrition %>% select_if(is.numeric)
 head(attrition_num)
 
-# Calculate the Pearson correlation coefficient 
+#Calculate the Pearson correlation coefficient 
 correlation <- cor(attrition_num, attrition$Attr, method = "pearson")
 print(correlation)
 
@@ -102,7 +104,7 @@ summary(overtime)
 ## Modeling
 
 ### KNN Modeling - Predicting Attrition
-```{r}
+```{r echo = FALSE}
 #Select features for modeling 
 attrition2 <- attrition %>% select(Attrition, JobInvolvement, JobLevel, MaritalStatus, TotalWorkingYears, MonthlyIncome, )
 head(attrition2)
@@ -178,7 +180,7 @@ cmPred
 ```
 
 ### Naive Bayes Modeling - Predicting Attrition
-```{r}
+```{r echo = FALSE}
 attritionComp2 <- No_Attrition_Comp %>% select(ID, JobInvolvement, JobSatisfaction, MaritalStatus, OverTime)
 head(attritionComp2)
 dim(attritionComp2)
@@ -199,7 +201,7 @@ CM
 ## Explore Relationships in Data
 
 ### Graphical view at some of the relationships
-```{r}
+```{r echo = FALSE}
 #Job Level and Monthly Income
 attrition %>% ggplot(aes(x = JobLevel, y = MonthlyIncome, color = JobLevel))+
   geom_point() +
@@ -257,7 +259,7 @@ pie + coord_polar(theta = "y", start=0)
 ##Modeling
 
 ### Linear Regression Modeling - Predicting Salary
-```{r}
+```{r echo = FALSE}
 #Load CaseStudy2-No-Salary data.csv
 No_Salary_Comp = read.csv(file.choose(), header = TRUE, stringsAsFactors = TRUE)
 head(No_Salary_Comp)
@@ -291,7 +293,7 @@ head(salaryLM)
 ```
 
 ### Writing predictions to .csv files
-```{r}
+```{r echo = FALSE}
 #save KNN Predictions
 write.csv(attritionKNN, 'Case2PredictionsKNNClassifyBrooks-Attrition.csv')
 
