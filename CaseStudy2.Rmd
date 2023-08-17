@@ -48,7 +48,7 @@ gg_miss_var(attrition)
 
 #Initial LRM to identify features that contribute to turnover.
 for (feature in names(attrition)) {
-  model <- lm(Attrition ~ get(feature), data = attrition)
+  model <- lm(Attr == 1 ~ get(feature), data = attrition)
   lm_summary <- summary(model)
   print(paste("Linear Regression for", feature))
   print(lm_summary)
